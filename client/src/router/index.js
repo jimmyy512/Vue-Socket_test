@@ -4,15 +4,19 @@ export default [
   {
     path: '/',
     component: App,
-    redirect: '/hello'
+    redirect: '/chat'
   },
   {
     path: '',
-    redirect: '/hello'
+    redirect: '/chat'
   },
   {
     path: '/hello',
     component: () => import('@/pages/Hello')
+  },
+  {
+    path: '/chat',
+    component:()=>import('@/pages/Chat')
   },
   {
     path: '/test',
