@@ -8,6 +8,7 @@ import ElementUI from 'element-ui'
 import 'element-ui/lib/theme-chalk/index.css'
 import 'babel-polyfill';
 import VueSocketIO from 'vue-socket.io'
+import '@/icons';
 
 //注入
 Vue.use(new VueSocketIO({
