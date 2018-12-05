@@ -18,34 +18,77 @@
                 </div>
             </div>
         </div>
-        <div class="content">
 
+        <div class="chatView">
+            <div class="chatContent">
+                <div class="">
+
+                </div>
+                <div>
+                    
+                </div>
+            </div>
         </div>
+
         <div class="textArea">
             <div class="topBlock">
                 <svg-icon icon-class="emoji" class="emojiIcon" />
             </div>
-            <div class="bottomBlock">
-                <textarea class="textArea"
-                    v-model="textInput">
+            <div class="bottomBlock clearf">
+                <el-input class="textInput" v-model="textInput" placeholder="Send Message...">
+                </el-input>
 
-                </textarea>
+                <svg-icon icon-class="send" class="sendIcon" />
             </div>
         </div>
     </div>
 </template>
 
 <script>
+import utils from "src/lib/utils";
 export default {
     data(){
         return{
             textInput:null,
+            userName:"jim",
+            chatValue:[],
+            randId:utils.makeId()
         }
+    },
+    created(){
+        document.onkeydown=
+        (e)=>{
+            if(window.event.keyCode==13)
+            {
+                this.sendMessage();
+            }
+        }
+    },
+    destroyed(){
+        document.onkeydown = null;
+    },
+    sockets: {
+      someOnePostMessage: function (data) {
+          console.log("test",this.$socket);
+        this.chatValue.push(data);
+      }
     },
     watch:{
         textInput()
         {
+            if(this.textInput==null)
+                return;
             this.textInput=this.textInput.replace(/<[^>]+>/ig,'');
+        }
+    },
+    methods:{
+        sendMessage(){
+            let obj={};
+            obj['user']=this.userName;
+            obj['text']=this.textInput;
+            obj['id']=this.randId;
+            this.$socket.emit('sendMessage', obj);
+            this.textInput=null;
         }
     }
 }
@@ -119,9 +162,12 @@ export default {
         }
     }
     
-    .content{
+    .chatView{
         width:100%;
-        height:calc(100% - 240px);
+        height:calc(100% - 180px);
+        .chatContent{
+
+        }
     }
 
     .textArea{
@@ -140,12 +186,18 @@ export default {
         }
         .bottomBlock{
             width:100%;
-            height:100px;
-            .textArea{
-                resize : none;
-                width: 100%;
-                height:100%;
-                border: 0px;
+            height:40px;
+            .textInput{
+                float:left;
+                width: calc(100% - 45px);
+            }
+            .sendIcon{
+                color:#459ce6;
+                margin-left:5px;
+                margin-right:5px;
+                float:left;
+                width: 35px;
+                height:35px;
             }
         }
     }

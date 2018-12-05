@@ -12,21 +12,22 @@ app.get('/', (req, res) => {
 });
 
 io.on('connection',(socket)=>{
-    console.log("Hello!");
-    socket.on('emit_method',(data)=>{
-        console.log("get postMessage",data);
-        io.emit('postMessage',data);
-        io.border
+    console.log(socket.id+" is connect.");
+    socket.on('sendMessage',(data)=>{
+        let local;
+        local=new Date();
+        let hour = local.getHours().toString();
+        let min = local.getMinutes().toString();
+        let localTime =`${hour}:${min}`;
+        data['sendTime']=localTime;
+        io.emit('someOnePostMessage',data);
     })
-
-
-
 
     socket.on('disconnect',()=>{
         console.log("Bye~");
     });
 })
 
-server.listen(3000,()=>{
+server.listen(8787,()=>{
     console.log("server start");
 });

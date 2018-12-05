@@ -13,7 +13,7 @@ import '@/icons';
 //注入
 Vue.use(new VueSocketIO({
   debug: true,
-  connection: 'localhost:3000',
+  connection: 'localhost:8787',
   vuex: {
       store,
       actionPrefix: 'SOCKET_',
