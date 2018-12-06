@@ -2,16 +2,16 @@
 
 打開"client/src/main.js"文件,connection地方可填入server ip
 
-Vue.use(new VueSocketIO({ 
-  debug: true, 
-  connection: '連接server IP', //填入連接server IP 
-  vuex: { 
-      store, 
-      actionPrefix: 'SOCKET_', 
-      mutationPrefix: 'SOCKET_' 
-  } 
-})) 
-
+Vue.use(new VueSocketIO({  
+  debug: true,  
+  connection: '連接server IP', //填入連接server IP  
+  vuex: {  
+      store,  
+      actionPrefix: 'SOCKET_',  
+      mutationPrefix: 'SOCKET_'  
+  }  
+}))  
+ 
 
 cmd 輸入
 
