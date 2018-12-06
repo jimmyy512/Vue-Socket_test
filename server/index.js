@@ -13,10 +13,10 @@ app.get('/', (req, res) => {
 });
 
 io.on('connection',(socket)=>{
-    console.log(socket.id+" is connect.");
-
+    console.log(socket.id+" is connect,"+onlinePeople+" people online.");
     socket.on('readyInit',(data)=>{
         socket.emit('init',chatList);
+        io.emit('onlinePeople',io.engine.clientsCount);
     })
 
     socket.on('sendMessage',(data)=>{
@@ -28,10 +28,12 @@ io.on('connection',(socket)=>{
         data['sendTime']=localTime;
         chatList.push(data);
         io.emit('someOnePostMessage',data);
+        socket.emit('SuccessSendMessage');
     })
 
     socket.on('disconnect',()=>{
-        console.log("Bye~");
+        io.emit('onlinePeople',io.engine.clientsCount);
+        console.log(socket.id+" is disconnect");
     });
 })
 

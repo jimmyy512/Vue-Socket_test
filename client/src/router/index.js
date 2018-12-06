@@ -11,23 +11,7 @@ export default [
     redirect: '/chat'
   },
   {
-    path: '/hello',
-    component: () => import('@/pages/Hello')
-  },
-  {
     path: '/chat',
     component:()=>import('@/pages/Chat')
-  },
-  {
-    path: '/test',
-    component: () => import('@/pages/test')
-  },
-  {
-    path: '/showtable',
-    component:()=>import('@/pages/ShowTable')
-  },
-  {
-    path: '/showeletable',
-    component:()=>import('@/pages/ShowELETable')
   },
 ]

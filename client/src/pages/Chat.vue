@@ -12,7 +12,9 @@
                 </div>
                 <div class="bottomBlock">
                     <svg-icon icon-class="user" class="userIcon" />
-                    <div class='userNum'>6</div>
+                    <div class='userNum'>
+                        {{onlinePeople}}
+                    </div>
                     <svg-icon icon-class="note" class="noteIcon" />
                     <svg-icon icon-class="search" class="searchIcon" />
                 </div>
@@ -61,7 +63,9 @@
                 <el-input class="textInput" v-model="textInput" placeholder="Send Message...">
                 </el-input>
 
-                <svg-icon icon-class="send" class="sendIcon" @click="sendMessage()"/>
+                <span @click="sendMessage()">
+                    <svg-icon icon-class="send" class="sendIcon" />
+                </span>
             </div>
         </div>
 
@@ -92,9 +96,16 @@ export default {
             chatList:[],
             randId:utils.makeId(),
             inputNameDialog:true,
+            originHtmlTitleName:document.title,
+            onlinePeople:0,
         }
     },
     created(){
+        window.addEventListener('visibilitychange',this.visibilityChangeFunc);
+    },
+    destroyed(){
+        window.removeEventListener('visibilitychange', this.visibilityChangeFunc);
+        document.onkeydown = null;
     },
     watch:{
         userName(){
@@ -104,9 +115,6 @@ export default {
     mounted(){
         this.readyInit();
     },
-    destroyed(){
-        document.onkeydown = null;
-    },
     sockets: {
       init(data){
         this.chatList=data;
@@ -115,12 +123,27 @@ export default {
             this.scrollBottom();
         });
       },
-      someOnePostMessage: function (data) {
+      someOnePostMessage(data){
         this.chatList.push(data);
+        //當在使用其他視窗時 通知新訊息
+        console.log(document.hidden);
+        if(document.hidden)
+            document.title=this.originHtmlTitleName+" *新訊息*";
         //下一次dom渲染完時調用
         this.$nextTick(() => {
             this.scrollBottom();
         });
+      },
+      SuccessSendMessage(data){
+
+      },
+      onlinePeople(data){
+        console.log("online emit",data);
+        this.onlinePeople=data;
+      },
+      allUser(data)
+      {
+        console.log("allUser",data);
       }
     },
     watch:{
@@ -132,6 +155,12 @@ export default {
         }
     },
     methods:{
+        visibilityChangeFunc(){
+            if (!document.hidden) {
+                // 切換螢幕回來時
+                document.title=this.originHtmlTitleName;
+            }
+        },
         handleClose(done) {
             return;
         },
@@ -145,7 +174,6 @@ export default {
             this.$socket.emit('readyInit');
         },
         sendMessage(){
-            console.log(this.textInput);
             if(this.textInput=="" || this.textInput==null)
             {
                 this.$message({
@@ -312,6 +340,7 @@ export default {
                         line-height: 25px;
                     }
                     .TextBlock{
+                        word-break: break-all;
                         border-radius:0px 10px 10px 10px;
                         padding:10px;
                         background: rgba(0, 0, 0, 0.1);
