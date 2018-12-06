@@ -19,13 +19,36 @@
             </div>
         </div>
 
-        <div class="chatView">
-            <div class="chatContent">
-                <div class="">
+        <div class="chatView clearf" ref="chatView">
+            <div class="chatContent clearf">
+                <div class="chatBlock clearf" v-for="(it,index) in chatList" :key="index">
+                    <template v-if="isMe(it.id)">
+                        <div class="stickerRight">
+                            <svg-icon icon-class="user" class="UserIcon"></svg-icon>
+                        </div>
+                        <div class="talkBlockRight">
+                            <div class="userName">
+                                {{it.user}}
+                            </div>
+                            <div class="TextBlock">
+                                {{it.text}}
+                            </div>
+                        </div>
+                    </template>
 
-                </div>
-                <div>
-                    
+                    <template v-else>
+                        <div class="sticker">
+                            <svg-icon icon-class="user" class="UserIcon"></svg-icon>
+                        </div>
+                        <div class="talkBlock">
+                            <div class="userName">
+                                {{it.user}}
+                            </div>
+                            <div class="TextBlock">
+                                {{it.text}}
+                            </div>
+                        </div>
+                    </template>
                 </div>
             </div>
         </div>
@@ -38,9 +61,24 @@
                 <el-input class="textInput" v-model="textInput" placeholder="Send Message...">
                 </el-input>
 
-                <svg-icon icon-class="send" class="sendIcon" />
+                <svg-icon icon-class="send" class="sendIcon" @click="sendMessage()"/>
             </div>
         </div>
+
+        <el-dialog
+        title="輸入聊天室名字"
+        :visible.sync="inputNameDialog"
+        width="80%"
+        :before-close="handleClose"
+        center>
+        <el-input v-model="userName" placeholder="請輸入..."></el-input>
+        <span slot="footer" class="dialog-footer">
+            <el-button type="primary" @click="submitNameClick()">
+                确 定
+            </el-button>
+        </span>
+        </el-dialog>
+
     </div>
 </template>
 
@@ -50,27 +88,39 @@ export default {
     data(){
         return{
             textInput:null,
-            userName:"jim",
-            chatValue:[],
-            randId:utils.makeId()
+            userName:"",
+            chatList:[],
+            randId:utils.makeId(),
+            inputNameDialog:true,
         }
     },
     created(){
-        document.onkeydown=
-        (e)=>{
-            if(window.event.keyCode==13)
-            {
-                this.sendMessage();
-            }
+    },
+    watch:{
+        userName(){
+            this.userName=this.userName.replace(/<[^>]+>/ig,'');
         }
+    },
+    mounted(){
+        this.readyInit();
     },
     destroyed(){
         document.onkeydown = null;
     },
     sockets: {
+      init(data){
+        this.chatList=data;
+        //下一次dom渲染完時調用
+        this.$nextTick(() => {
+            this.scrollBottom();
+        });
+      },
       someOnePostMessage: function (data) {
-          console.log("test",this.$socket);
-        this.chatValue.push(data);
+        this.chatList.push(data);
+        //下一次dom渲染完時調用
+        this.$nextTick(() => {
+            this.scrollBottom();
+        });
       }
     },
     watch:{
@@ -82,13 +132,55 @@ export default {
         }
     },
     methods:{
+        handleClose(done) {
+            return;
+        },
+        isMe(id){
+            if(id==this.randId)
+                return true;
+            else
+                return false;
+        },
+        readyInit(){
+            this.$socket.emit('readyInit');
+        },
         sendMessage(){
+            console.log(this.textInput);
+            if(this.textInput=="" || this.textInput==null)
+            {
+                this.$message({
+                    message: '聊天內容為空,請再次確認!',
+                    type: 'warning'
+                });
+                return;
+            }
             let obj={};
             obj['user']=this.userName;
             obj['text']=this.textInput;
             obj['id']=this.randId;
             this.$socket.emit('sendMessage', obj);
             this.textInput=null;
+        },
+        scrollBottom(){
+            this.$refs.chatView.scrollTo(0,99999);
+        },
+        submitNameClick(){
+            if(this.userName=="" || this.userName==null)
+            {
+                this.$message({
+                    message: '名字輸入為空,請再次確認!',
+                    type: 'warning'
+                });
+                return;
+            }
+            this.inputNameDialog = false;
+            document.onkeydown=
+            (e)=>{
+                if(window.event.keyCode==13)
+                {
+                    this.sendMessage();
+                }
+            }
         }
     }
 }
@@ -96,6 +188,22 @@ export default {
 
 <style lang="scss">
 #Chat{
+    .el-dialog__headerbtn{
+        display:none;
+    }
+    ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+    }
+    ::-webkit-scrollbar-thumb {
+        border-radius: 10px;
+        background: rgba(102, 210, 254, 0.68);
+    }
+    ::-webkit-scrollbar-track {
+        border-radius: 10px;
+        background: rgba(102, 210, 254, 0.1);
+    }
+
     min-width: 250px;
     height:100%;
     .title{
@@ -163,10 +271,69 @@ export default {
     }
     
     .chatView{
+        overflow: auto;
         width:100%;
         height:calc(100% - 180px);
+        background:#000 url("../../assets/image/chatBG.jpeg");
+        background-repeat: no-repeat;
+        background-attachment: fixed;
+        background-position: center;
+        background-size: cover;
         .chatContent{
-
+            .chatBlock{
+                padding:10px;
+                %stickerCommon{
+                    width:50px;
+                    height:50px;
+                    background-color:#f5f7fa;
+                    float:left;
+                    border-radius:50%;
+                    .UserIcon{
+                        color:gray;
+                        width:80%;
+                        height:80%;
+                        margin: 7px auto;
+                        display: block;
+                    }
+                }
+                .sticker{
+                    @extend %stickerCommon;
+                }
+                .stickerRight{
+                    @extend %stickerCommon;
+                    float:right;
+                }
+                %talkBlockCommon{
+                    float:left;
+                    height:100%;
+                    max-width: calc(100% - 60px);
+                    .userName{
+                        height: 25px;
+                        line-height: 25px;
+                    }
+                    .TextBlock{
+                        border-radius:0px 10px 10px 10px;
+                        padding:10px;
+                        background: rgba(0, 0, 0, 0.1);
+                    }
+                }
+                .talkBlock{
+                    @extend %talkBlockCommon;
+                    margin-left:10px;
+                }
+                .talkBlockRight{
+                    @extend %talkBlockCommon;
+                    margin-right:10px;
+                    float:right;
+                    .userName{
+                        text-align: right;
+                    }
+                    .TextBlock{
+                        border-radius:10px 0px 10px 10px;
+                        text-align: right;
+                    }
+                }
+            }
         }
     }
 

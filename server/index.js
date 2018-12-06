@@ -5,6 +5,7 @@ const app=express();
 const server=require('http').Server(app);
 const io=require('socket.io')(server);
 
+var chatList=[];
 // 修改這一部分
 app.get('/', (req, res) => {
     // let resolvePath=path.resolve("./client/index.html");
@@ -13,6 +14,11 @@ app.get('/', (req, res) => {
 
 io.on('connection',(socket)=>{
     console.log(socket.id+" is connect.");
+
+    socket.on('readyInit',(data)=>{
+        socket.emit('init',chatList);
+    })
+
     socket.on('sendMessage',(data)=>{
         let local;
         local=new Date();
@@ -20,6 +26,7 @@ io.on('connection',(socket)=>{
         let min = local.getMinutes().toString();
         let localTime =`${hour}:${min}`;
         data['sendTime']=localTime;
+        chatList.push(data);
         io.emit('someOnePostMessage',data);
     })
 
