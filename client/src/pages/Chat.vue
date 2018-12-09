@@ -11,12 +11,15 @@
                     </div>
                 </div>
                 <div class="bottomBlock">
-                    <svg-icon icon-class="user" class="userIcon" />
+                    <div  @click="showUserList=true">
+                    <svg-icon icon-class="user" class="userIcon"/>
+
                     <div class='userNum'>
-                        {{onlinePeople}}
+                        {{userList.length}}
                     </div>
-                    <svg-icon icon-class="note" class="noteIcon" />
-                    <svg-icon icon-class="search" class="searchIcon" />
+                    </div>
+                    <!-- <svg-icon icon-class="note" class="noteIcon" />
+                    <svg-icon icon-class="search" class="searchIcon" /> -->
                 </div>
             </div>
         </div>
@@ -24,32 +27,46 @@
         <div class="chatView clearf" ref="chatView">
             <div class="chatContent clearf">
                 <div class="chatBlock clearf" v-for="(it,index) in chatList" :key="index">
-                    <template v-if="isMe(it.id)">
-                        <div class="stickerRight">
-                            <svg-icon icon-class="user" class="UserIcon"></svg-icon>
-                        </div>
-                        <div class="talkBlockRight">
-                            <div class="userName">
-                                {{it.user}}
-                            </div>
-                            <div class="TextBlock">
-                                {{it.text}}
-                            </div>
+                    <template v-if="it.isServerTalk==true">
+                        <div class="ServerTalk">
+                            {{it.text}}
                         </div>
                     </template>
 
                     <template v-else>
-                        <div class="sticker">
-                            <svg-icon icon-class="user" class="UserIcon"></svg-icon>
-                        </div>
-                        <div class="talkBlock">
-                            <div class="userName">
-                                {{it.user}}
+                        <template v-if="it.isMe==true">
+                            <div class="stickerRight">
+                                <svg-icon icon-class="user" class="UserIcon"></svg-icon>
                             </div>
-                            <div class="TextBlock">
-                                {{it.text}}
+                            <div class="talkBlockRight">
+                                <div class="userName">
+                                    {{it.user}}
+                                </div>
+                                <div class="TextBlock">
+                                    {{it.text}}
+                                    <div class="talkTimeRight">
+                                        {{it.sendTime}}
+                                    </div>
+                                </div>
                             </div>
-                        </div>
+                        </template>
+
+                        <template v-else>
+                            <div class="sticker">
+                                <svg-icon icon-class="user" class="UserIcon"></svg-icon>
+                            </div>
+                            <div class="talkBlock">
+                                <div class="userName">
+                                    {{it.user}}
+                                </div>
+                                <div class="TextBlock">
+                                    {{it.text}}
+                                    <div class="talkTime">
+                                        {{it.sendTime}}
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
                     </template>
                 </div>
             </div>
@@ -82,7 +99,22 @@
             </el-button>
         </span>
         </el-dialog>
-
+        
+        <el-dialog
+            title="聊天室成員"
+            :visible.sync="showUserList"
+            width="80%"
+            :before-close="handleClose"
+            center>
+            <div v-for="(it,index) in userList" :key="index" style="text-align:center;">
+                {{it.userName}}
+            </div>
+            <span slot="footer" class="dialog-footer">
+                <el-button type="primary" @click="showUserList=false">
+                    确 定
+                </el-button>
+            </span>
+        </el-dialog>
     </div>
 </template>
 
@@ -92,12 +124,13 @@ export default {
     data(){
         return{
             textInput:null,
-            userName:"",
+            userName:null,
             chatList:[],
             randId:utils.makeId(),
             inputNameDialog:true,
             originHtmlTitleName:document.title,
-            onlinePeople:0,
+            showUserList:false,
+            userList:[],
         }
     },
     created(){
@@ -116,35 +149,41 @@ export default {
         this.readyInit();
     },
     sockets: {
+      connect: ()=> {
+        console.log('socket connected')
+        if(this.userName!=null)
+            this.$socket.emit('reConnect',userName);
+      },
       init(data){
         this.chatList=data;
-        //下一次dom渲染完時調用
-        this.$nextTick(() => {
-            this.scrollBottom();
-        });
+        this.scrollBottom();
       },
       someOnePostMessage(data){
+        data["isMe"]=false;
         this.chatList.push(data);
         //當在使用其他視窗時 通知新訊息
         console.log(document.hidden);
         if(document.hidden)
             document.title=this.originHtmlTitleName+" *新訊息*";
-        //下一次dom渲染完時調用
-        this.$nextTick(() => {
-            this.scrollBottom();
-        });
+        this.scrollBottom();
       },
       SuccessSendMessage(data){
-
+        data["isMe"]=true;
+        this.chatList.push(data);
+        this.scrollBottom();
+      },
+      serverTalk(data)
+      {
+        let tmpObj={
+            "isServerTalk":true,
+            "text":data
+        }
+        this.chatList.push(tmpObj);
+        this.scrollBottom();
       },
       onlinePeople(data){
-        console.log("online emit",data);
-        this.onlinePeople=data;
+        this.userList=data;
       },
-      allUser(data)
-      {
-        console.log("allUser",data);
-      }
     },
     watch:{
         textInput()
@@ -164,16 +203,18 @@ export default {
         handleClose(done) {
             return;
         },
-        isMe(id){
-            if(id==this.randId)
-                return true;
-            else
-                return false;
-        },
         readyInit(){
             this.$socket.emit('readyInit');
         },
         sendMessage(){
+            if(this.userName=="" || this.userName==null)
+            {
+                this.$message({
+                    message: '于政鴻 你以為這種漏洞我會沒想到嗎?',
+                    type: 'warning'
+                });
+                return;
+            }
             if(this.textInput=="" || this.textInput==null)
             {
                 this.$message({
@@ -185,12 +226,13 @@ export default {
             let obj={};
             obj['user']=this.userName;
             obj['text']=this.textInput;
-            obj['id']=this.randId;
             this.$socket.emit('sendMessage', obj);
             this.textInput=null;
         },
         scrollBottom(){
-            this.$refs.chatView.scrollTo(0,99999);
+            this.$nextTick(() => {
+                this.$refs.chatView.scrollTo(0,99999);
+            });
         },
         submitNameClick(){
             if(this.userName=="" || this.userName==null)
@@ -201,6 +243,7 @@ export default {
                 });
                 return;
             }
+            this.$socket.emit('createUser',this.userName);
             this.inputNameDialog = false;
             document.onkeydown=
             (e)=>{
@@ -216,6 +259,10 @@ export default {
 
 <style lang="scss">
 #Chat{
+    .el-dialog
+    {
+        max-width: 350px;
+    }
     .el-dialog__headerbtn{
         display:none;
     }
@@ -324,6 +371,15 @@ export default {
                         display: block;
                     }
                 }
+                .ServerTalk{
+                    background-color: rgba(128, 128, 128, 0.32);
+                    width: 80%;
+                    text-align: center;
+                    margin: 0 auto;
+                    padding: 5px;
+                    font-weight: bold;
+                    border-radius: 20px;
+                }
                 .sticker{
                     @extend %stickerCommon;
                 }
@@ -334,7 +390,7 @@ export default {
                 %talkBlockCommon{
                     float:left;
                     height:100%;
-                    max-width: calc(100% - 60px);
+                    max-width: calc(100% - 100px);
                     .userName{
                         height: 25px;
                         line-height: 25px;
@@ -344,6 +400,17 @@ export default {
                         border-radius:0px 10px 10px 10px;
                         padding:10px;
                         background: rgba(0, 0, 0, 0.1);
+                        position:relative;
+                        .talkTime{
+                            position: absolute;
+                            bottom:0;
+                            right:-40px;
+                        }
+                        .talkTimeRight{
+                            position: absolute;
+                            bottom:0;
+                            left:-40px;
+                        }
                     }
                 }
                 .talkBlock{
